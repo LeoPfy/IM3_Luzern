@@ -1,3 +1,7 @@
-*.mp4
-*.mov
+.DS_Store
+config.php
+.vscode
+sftp-config.json
 sftp.json
+db_config.php
+
