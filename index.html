@@ -50,15 +50,22 @@
         <input id="date" class="control" type="date" value="2025-09-30" />
 
         <label class="visually-hidden" for="time">Uhrzeit</label>
-        <select id="time" class="control">
-          <option>08:00 Uhr</option>
-          <option>09:00 Uhr</option>
-          <option>10:00 Uhr</option>
-          <option selected>12:00 Uhr</option>
-          <option>14:00 Uhr</option>
-          <option>16:00 Uhr</option>
-          <option>18:00 Uhr</option>
-        </select>
+        <div class="dropdown" id="timeDropdown" data-dropdown>
+          <button type="button"
+          class="control dropdown__toggle"
+          aria-haspopup="listbox"
+          aria-expanded="false"
+          aria-controls="timeMenu">
+        <span class="dropdown__label">12:00 Uhr</span>
+        <svg class="dropdown__caret" width="12" height="8" viewBox="0 0 12 8" aria-hidden="true">
+          <path d="M1 1l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+  </button>
+
+  <ul class="dropdown__menu" id="timeMenu" role="listbox" tabindex="-1" aria-label="Uhrzeit auswählen">
+    <!-- wird per JS gefüllt -->
+  </ul>
+</div>
 
         <button class="btn" type="button">Auswählen</button>
       </form>
