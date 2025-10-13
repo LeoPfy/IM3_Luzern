@@ -1,46 +1,43 @@
 <?php
-// transform.php
-header('Access-Control-Allow-Origin: *');
+declare(strict_types=1);
+
+// Keine Warnings im Response-Body (gehen ins error_log)
+ini_set('display_errors', '0');
+error_reporting(E_ALL);
+
 header('Content-Type: application/json; charset=utf-8');
+header('Access-Control-Allow-Origin: *');
 
-// --- Rohdaten holen (direkt aus der API oder via extract.php) ---
-// Entweder direkt:
-$apiUrl = "https://portal.alfons.io/app/devicecounter/api/sensors?api_key=3ad08d9e67919877e4c9f364974ce07e36cbdc9e";
-$ch = curl_init($apiUrl);
-curl_setopt_array($ch, [
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_TIMEOUT => 10,
-    CURLOPT_HTTPHEADER => ['Accept: application/json'],
-]);
-$raw = curl_exec($ch);
-$curlErr = curl_error($ch);
-$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-curl_close($ch);
+// --- Daten via extract.php laden ---
+$payload = @include __DIR__ . '/extract.php'; // dein extract.php: return fetchMetheData();
 
-if ($raw === false || $httpCode >= 400) {
-    echo json_encode(['ok' => false, 'error' => 'Fetch failed', 'detail' => $curlErr ?: ('HTTP '.$httpCode)]);
+if ($payload === false) {
+    error_log('transform.php: include extract.php failed');
+    echo json_encode(['ok' => false, 'error' => 'include_failed']);
     exit;
 }
-
-$payload = json_decode($raw, true);
 if (!is_array($payload)) {
-    echo json_encode(['ok' => false, 'error' => 'JSON decode error']);
+    error_log('transform.php: extract.php did not return array');
+    echo json_encode(['ok' => false, 'error' => 'upstream_not_array']);
     exit;
 }
 
-// Die API liefert bei dir ein flaches Array von Items:
+// Die API liefert bei dir direkt eine Liste von Items (ohne "data")
 $items = $payload;
+if (!is_array($items)) {
+    echo json_encode(['ok' => false, 'error' => 'unexpected_payload']);
+    exit;
+}
 
-// --- Mapping & Utils ---
+// --- Mapping & Filter ---
 $nameMap = [
-    // alle Kapell... Varianten -> gewünschter Anzeigename
-    'Kapellbruecke'  => 'Kappelbrücke',
-    'Kapellbrücke'   => 'Kappelbrücke',
-    'Loewendenkmal'  => 'Löwendenkmal',
-    'Löwendenkmal'   => 'Löwendenkmal',
-    'Hertensteinstr' => 'Hertensteinstrasse',
-    'Hertensteinstrasse' => 'Hertensteinstrasse',
-    'Schwanenplatz'  => 'Schwanenplatz',
+    "Kapellbruecke"      => "Kappelbrücke",
+    "Kapellbrücke"       => "Kappelbrücke",
+    "Loewendenkmal"      => "Löwendenkmal",
+    "Löwendenkmal"       => "Löwendenkmal",
+    "Hertensteinstr"     => "Hertensteinstrasse",
+    "Hertensteinstrasse" => "Hertensteinstrasse",
+    "Schwanenplatz"      => "Schwanenplatz",
 ];
 
 function norm(string $s): string {
@@ -53,59 +50,52 @@ function shouldExclude(?string $name): bool {
     if ($name === null || $name === '') return false;
     $n = norm($name);
 
-    // Rathausquai vollständig raus
+    // Rathausquai komplett entfernen
     if (strpos($n, 'rathausquai') !== false) return true;
 
-    // Kapell... + wifi/wlan raus
+    // Kapell... + wifi/wlan entfernen
     $isKapell = (strpos($n, 'kapellbruecke') !== false) || (strpos($n, 'kapellbr') !== false);
     $isWifi   = (strpos($n, 'wifi') !== false) || (strpos($n, 'wlan') !== false);
-    if ($isKapell && $isWifi) return true;
-
-    return false;
+    return $isKapell && $isWifi;
 }
 
 function mapDisplay(string $raw, array $map): string {
-    // exakte & teilweise Matches (robust gegen Varianten)
-    foreach ($map as $key => $disp) {
-        if (norm($raw) === norm($key) || strpos(norm($raw), norm($key)) !== false) {
+    $rawN = norm($raw);
+    foreach ($map as $k => $disp) {
+        if ($rawN === norm($k) || strpos($rawN, norm($k)) !== false) {
             return $disp;
         }
     }
-    return $raw;
+    return $raw; // Fallback: Originalname
 }
 
-// --- Transformieren ---
+// --- Transformieren (mit harten Guards) ---
 $out = [];
 foreach ($items as $row) {
-    // Nur valide Rows zulassen
+    // Nur echte Arrays verarbeiten (ignoriert versehentliche Skalarwerte)
     if (!is_array($row)) continue;
 
-    // Deine API hat z. B.:
-    // [name] => Kapellbrücke, [counter] => 161, ...
-    $name    = isset($row['name'])    && is_string($row['name']) ? $row['name'] : null;
-    $counter = isset($row['counter']) && is_numeric($row['counter']) ? (int)$row['counter'] : null;
+    // Erwartete Keys absichern
+    $name    = array_key_exists('name', $row) && is_string($row['name']) ? $row['name'] : null;
+    $counter = array_key_exists('counter', $row) && is_numeric($row['counter']) ? (int)$row['counter'] : null;
 
-    // Wenn die Struktur mal abweicht, Eintrag überspringen statt warnen
     if ($name === null || $counter === null) continue;
-
     if (shouldExclude($name)) continue;
 
     $display = mapDisplay($name, $nameMap);
 
-    // Ausgabeformat schlank halten – passe an, wenn du mehr Felder willst
     $out[] = [
         'location' => $display,
         'counter'  => $counter,
-        // Optional nützlich:
-        // 'raw_name' => $name,
+        // Optional weitere Felder, falls benötigt:
         // 'nodeid'   => $row['nodeid'] ?? null,
         // 'time'     => $row['ISO_time'] ?? ($row['time'] ?? null),
     ];
 }
 
-// --- JSON ausgeben ---
+// --- Ausgabe ---
 echo json_encode([
-    'ok' => true,
+    'ok'    => true,
     'count' => count($out),
     'items' => $out,
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
