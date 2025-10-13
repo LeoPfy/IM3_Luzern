@@ -1,18 +1,71 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de">
 <head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Luzern – Besucherzahlen visualisiert</title>
 
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Besucherzahlen Luzern</title>
+  <!-- Schriften: optisch passend; ersetze gern später durch deine Original-Fonts -->
+<!-- Performance: preconnect -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<!-- Inknut Antiqua – wähle die Gewichte, die du brauchst -->
+<link href="https://fonts.googleapis.com/css2?family=Inknut+Antiqua:wght@400;600;700;800&display=swap" rel="stylesheet">
+
   <link rel="stylesheet" href="style.css" />
-
 </head>
 <body>
-  
-<h1>Hallo liebe Welt!</h1>
-  <img src="images/Background.png" alt="Hintergrundbild" class="background_image" />
-  <script src="script.js"></script>
-  
+  <!-- Wasser-Hintergrund & Schwäne-Pattern liegen in CSS -->
+  <main class="stage">
+    <!-- Briefmarken (Ecken) -->
+    <figure class="stamp stamp--tl">
+      <img src="images/Schwanenplatz.png" alt="Schwanenplatz" />
+      <figcaption class="sr-only">Schwanenplatz</figcaption>
+    </figure>
+
+    <figure class="stamp stamp--tr">
+      <img src="images/Hertensteinstrasse.png" alt="Hertensteinstrasse" />
+      <figcaption class="sr-only">Hertensteinstrasse</figcaption>
+    </figure>
+
+    <figure class="stamp stamp--bl">
+      <img src="images/Löwendenkmal.png" alt="Löwendenkmal" />
+      <figcaption class="sr-only">Löwendenkmal</figcaption>
+    </figure>
+
+    <figure class="stamp stamp--br">
+      <img src="images/Kapellbrücke.png" alt="Kappelbrücke" />
+      <figcaption class="sr-only">Kappelbrücke</figcaption>
+    </figure>
+
+    <!-- Mittelbereich -->
+    <section class="hero">
+      <h1>Luzern</h1>
+      <h2>Besucherzahlen visualisiert</h2>
+      <p class="hint">Ein Schwan entspricht 10&nbsp;Passanten</p>
+
+      <form class="controls" action="#" onsubmit="return false;">
+        <label class="visually-hidden" for="date">Datum</label>
+        <input id="date" class="control" type="date" value="2025-09-30" />
+
+        <label class="visually-hidden" for="time">Uhrzeit</label>
+        <select id="time" class="control">
+          <option>08:00 Uhr</option>
+          <option>09:00 Uhr</option>
+          <option>10:00 Uhr</option>
+          <option selected>12:00 Uhr</option>
+          <option>14:00 Uhr</option>
+          <option>16:00 Uhr</option>
+          <option>18:00 Uhr</option>
+        </select>
+
+        <button class="btn" type="button">Auswählen</button>
+      </form>
+    </section>
+  </main>
+
+  <!-- Dein künftiges JS -->
+  <script src="script.js" defer></script>
 </body>
 </html>

@@ -12,6 +12,7 @@ function fetchMetheData()
     }
     curl_close($ch);
     return json_decode($response, true);
+    echo <pre>$response</pre>;
 }
 
 return fetchMetheData();
