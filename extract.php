@@ -11,8 +11,12 @@ function fetchMetheData()
         return null;
     }
     curl_close($ch);
-    return json_decode($response, true);
-    echo <pre>$response</pre>;
+    // return json_decode($response, true);
+
+    echo '<pre>';
+    return ($response);
+    echo '</pre>';
+    
 }
 
 return fetchMetheData();
