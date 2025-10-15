@@ -150,6 +150,8 @@ body {
   display: none;                  /* per .open sichtbar */
   padding: 8px 0;
   border-radius: 12px;
+  max-height: 200px; 
+  overflow-y: auto; 
 
   background: rgba(255,255,255,0.65);
   -webkit-backdrop-filter: blur(8px);
@@ -157,6 +159,7 @@ body {
 
   border: 1px solid rgba(0,0,0,0.12);
   box-shadow: 0 10px 24px rgba(0,0,0,0.20);
+    
 }
 
 .dropdown.open .dropdown__menu{ display: block; }
@@ -210,7 +213,7 @@ body {
 
 @media (hover:hover) {
   .stamp:hover{
-    transform: scale(1.20);                           /* größer werden */
+    transform: scale(1.10);                           /* größer werden */
     filter: drop-shadow(0 14px 18px rgba(0,0,0,.22)); /* stärkerer Schatten */
     z-index: 2;                                     /* über andere Elemente */
 }
