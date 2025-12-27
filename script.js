@@ -1,4 +1,3 @@
-// script.js
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -226,8 +225,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             updateSwanCountText(count, locationID);
             
-            // FIX: Sofort starten!
-            // Kleiner Timeout zwingt Browser zum Rendern der Startposition
+            // Sofort starten!
             setTimeout(() => {
                 animateSwans(); 
             }, 50);
@@ -246,7 +244,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const stampCenterX = rect.left + rect.width / 2;
         const stampCenterY = rect.top + rect.height / 2;
-        const PADDING = 140;    
+        
+        // NEU: Responsive PADDING Berechnung
+        // Wenn Fenster < 820px, dann kleinerer Radius (90px), sonst Standard (140px)
+        const isMobile = window.innerWidth < 820;
+        const PADDING = isMobile ? 90 : 140;    
+        
         const RANDOM_RADIUS = 4;
 
         // Schwäne anpassen (+/-)
@@ -315,7 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     const locationText = (locationID === 'Gesamt') ? 'alle Orte' : locationID;
-    countElement.textContent = `Zeige ${count} Schwän${count === 1 ? '' : 'e'} für ${locationText}.`;
+    countElement.textContent = `Zeige ${count} Schwan${count === 1 ? '' : 'e'} für ${locationText}.`;
   }
   
   function updateView(locationID, messzeit) {
@@ -368,6 +371,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const locationID = stamp.dataset.locationId;
       updateView(locationID, currentView.messzeit);
     });
+  });
+  
+  // Optional: Bei Resize (Handy drehen) Ansicht aktualisieren, damit Radien stimmen
+  window.addEventListener('resize', () => {
+     if(currentView.location !== 'Gesamt') {
+         // Kurzer Debounce könnte hier sinnvoll sein, aber direktes Update geht auch
+         renderSwans(document.querySelectorAll('.swan').length, currentView.location);
+     }
   });
 
   // Start
