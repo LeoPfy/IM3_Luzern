@@ -6,33 +6,38 @@
   <title>Luzern – Besucherzahlen visualisiert</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-<link href="https://fonts.googleapis.com/css2?family=Inknut+Antiqua:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inknut+Antiqua:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="styles2.css" />
+  
+  <link rel="icon" href="images/swan.png" type="image/png">
 </head>
 <body>
+  
   <main class="stage">
+    
     <figure class="stamp stamp--tl" data-location-id="Schwanenplatz" tabindex="0">
-      <img src="images/Schwanenplatz.png" alt="Schwanenplatz" />
+      <img src="images/Schwanenplatz.png" alt="Briefmarke Schwanenplatz" />
       <figcaption class="sr-only">Schwanenplatz</figcaption>
     </figure>
 
     <figure class="stamp stamp--tr" data-location-id="Hertensteinstrasse" tabindex="0">
-      <img src="images/Hertensteinstrasse.png" alt="Hertensteinstrasse" />
+      <img src="images/Hertensteinstrasse.png" alt="Briefmarke Hertensteinstrasse" />
       <figcaption class="sr-only">Hertensteinstrasse</figcaption>
     </figure>
 
     <figure class="stamp stamp--bl" data-location-id="Löwendenkmal" tabindex="0">
-      <img src="images/Löwendenkmal.png" alt="Löwendenkmal" />
+      <img src="images/Loewendenkmal.png" alt="Briefmarke Löwendenkmal" />
       <figcaption class="sr-only">Löwendenkmal</figcaption>
     </figure>
 
     <figure class="stamp stamp--br" data-location-id="Kapellbrücke" tabindex="0">
-      <img src="images/Kapellbruecke.png" alt="Kapellbrücke" />
+      <img src="images/Kapellbruecke.png" alt="Briefmarke Kapellbrücke" />
       <figcaption class="sr-only">Kapellbrücke</figcaption>
     </figure>
+
 
     <section class="hero">
       <h1>Luzern</h1>
@@ -46,23 +51,24 @@
         <label class="visually-hidden" for="time">Uhrzeit</label>
         <div class="dropdown" id="timeDropdown" data-dropdown>
           <button type="button"
-          class="control dropdown__toggle"
-          aria-haspopup="listbox"
-          aria-expanded="false"
-          aria-controls="timeMenu">
-        <span class="dropdown__label">12:00 Uhr</span>
-        <svg class="dropdown__caret" width="12" height="8" viewBox="0 0 12 8" aria-hidden="true">
-          <path d="M1 1l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-  </button>
+                  class="control dropdown__toggle"
+                  aria-haspopup="listbox"
+                  aria-expanded="false"
+                  aria-controls="timeMenu">
+            <span class="dropdown__label">Zeit laden...</span>
+            <svg class="dropdown__caret" width="12" height="8" viewBox="0 0 12 8" aria-hidden="true">
+              <path d="M1 1l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
 
-  <ul class="dropdown__menu" id="timeMenu" role="listbox" tabindex="-1" aria-label="Uhrzeit auswählen">
-    </ul>
-</div>
+          <ul class="dropdown__menu" id="timeMenu" role="listbox" tabindex="-1" aria-label="Uhrzeit auswählen">
+            </ul>
+        </div>
 
         <button class="btn" type="button">Auswählen</button>
       </form>
     </section>
+
   </main>
 
   <script src="script.js" defer></script>
