@@ -54,7 +54,7 @@ body {
   margin: 0 auto;
   text-align: center;
   width: min(820px, 90vw);
-  padding-inline: 16px;       
+  padding: 40px 16px;      
   background-color: rgba(255, 255, 255, 0.25);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px); /* Für Safari-Kompatibilität */
@@ -247,7 +247,7 @@ body {
   .control{ min-width: 46vw; }
 }
 
-/* style.css */
+
 
 /* Container für die dynamisch erzeugten Schwäne */
 .swan-container {
@@ -262,7 +262,7 @@ body {
 
 /* Füge dies zum .stage Container hinzu, um Schwäne absolut zu positionieren */
 .stage {
-  /* ... bestehende Stile ... */
+
   position: relative; /* Sicherstellen, dass absolute Positionierung relativ zur Stage ist */
 }
 
@@ -275,7 +275,7 @@ body {
   height: 100%;
   z-index: 0; 
   pointer-events: none;
-  /* Schwäne verschwinden lassen, wenn sie ausserhalb der Stage sind */
+  
   overflow: hidden; 
 }
 

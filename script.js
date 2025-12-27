@@ -13,6 +13,9 @@ document.addEventListener('DOMContentLoaded', () => {
   
   const SWAN_VALUE = 10;
   
+  // Globale Variable für alle Zeitstempel (für Filterung)
+  let allAvailableTimestamps = [];
+
   let swanContainer = document.querySelector('.swan-container');
   if (!swanContainer) {
     swanContainer = document.createElement('div');
@@ -25,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Aktueller Zustand: Speichert, ob Gesamt- oder Detailansicht
+  // Aktueller Zustand
   let currentView = {
     location: 'Gesamt',
     messzeit: null,
@@ -35,53 +38,72 @@ document.addEventListener('DOMContentLoaded', () => {
   let swanAnimationInterval = null;
 
 
-  // === 2. Dropdown mit Zeiten füllen ===
+  // === 2. Dropdown & Zeit-Logik ===
+
+  // Hilfsfunktion: Füllt das Zeit-Dropdown basierend auf einem gewählten Datum
+  function renderTimeOptions(selectedDate) {
+    timeMenu.innerHTML = ''; // Menü leeren
+
+    // Filtere Zeitstempel, die mit dem Datum beginnen (Format: YYYY-MM-DD)
+    const timesForDate = allAvailableTimestamps.filter(ts => ts.startsWith(selectedDate));
+
+    if (timesForDate.length > 0) {
+      timeLabel.textContent = "Zeit wählen";
+      
+      timesForDate.forEach(fullMesszeit => {
+        const li = document.createElement('li');
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'dropdown__item';
+        
+        // Anzeigeformat: "12:00 Uhr"
+        const timePart = fullMesszeit.split(' ')[1].substring(0, 5);
+        button.textContent = `${timePart} Uhr`;
+        button.dataset.fullMesszeit = fullMesszeit;
+
+        button.addEventListener('click', () => {
+          timeLabel.textContent = button.textContent;
+          timeLabel.dataset.fullMesszeit = button.dataset.fullMesszeit;
+          
+          currentView.messzeit = button.dataset.fullMesszeit;
+          timeDropdown.classList.remove('open');
+          
+          // Optional: Direkt laden bei Klick
+          // updateView('Gesamt', currentView.messzeit);
+        });
+
+        li.appendChild(button);
+        timeMenu.appendChild(li);
+      });
+    } else {
+      timeLabel.textContent = "-";
+      timeMenu.innerHTML = '<li style="text-align:center; padding:10px;">Keine Daten für dieses Datum.</li>';
+    }
+  }
+
+  // Hauptfunktion: Lädt alle Zeiten einmalig vom Server
   async function populateTimeDropdown() {
     timeMenu.innerHTML = '<li style="text-align:center;">Lade Zeiten...</li>';
     try {
       const response = await fetch('get_times.php');
-      const availableTimes = await response.json();
+      allAvailableTimestamps = await response.json();
 
-      if (response.ok && Array.isArray(availableTimes) && availableTimes.length > 0) {
+      if (response.ok && Array.isArray(allAvailableTimestamps) && allAvailableTimestamps.length > 0) {
         
-        timeMenu.innerHTML = '';
-        
-        const latestTime = availableTimes[0];
-        const [latestDate, latestFullTime] = latestTime.split(' ');
-        const latestFormattedTime = latestFullTime.substring(0, 5);
+        // Neuesten Eintrag als Standard setzen
+        const latestFullTime = allAvailableTimestamps[0];
+        const [latestDate, latestTimePart] = latestFullTime.split(' ');
+        const latestFormattedTime = latestTimePart.substring(0, 5);
 
-        // Standardwerte setzen
+        // GUI initialisieren
         dateInput.value = latestDate;
+        renderTimeOptions(latestDate); // Dropdown befüllen für diesen Tag
+
+        // Label setzen
         timeLabel.textContent = `${latestFormattedTime} Uhr`;
-        timeLabel.dataset.fullMesszeit = latestTime;
-        currentView.messzeit = latestTime;
+        timeLabel.dataset.fullMesszeit = latestFullTime;
+        currentView.messzeit = latestFullTime;
 
-        availableTimes.forEach(fullMesszeit => {
-          const li = document.createElement('li');
-          const button = document.createElement('button');
-          button.type = 'button';
-          button.className = 'dropdown__item';
-          
-          const [date, fullTime] = fullMesszeit.split(' ');
-          const formattedTime = fullTime.substring(0, 5);
-
-          button.textContent = `${formattedTime} Uhr`;
-          button.dataset.fullMesszeit = fullMesszeit;
-
-          button.addEventListener('click', () => {
-            timeLabel.textContent = button.textContent;
-            timeLabel.dataset.fullMesszeit = button.dataset.fullMesszeit;
-            dateInput.value = date;
-            currentView.messzeit = button.dataset.fullMesszeit;
-            timeDropdown.classList.remove('open');
-            // Bei Zeitwahl auf Gesamtansicht zurücksetzen
-            updateView('Gesamt', currentView.messzeit);
-          });
-
-          li.appendChild(button);
-          timeMenu.appendChild(li);
-        });
-        
       } else {
         timeLabel.textContent = "Keine Daten";
         timeMenu.innerHTML = '<li style="text-align:center;">Keine Messdaten gefunden.</li>';
@@ -95,15 +117,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
 
-  // === 3. Zentrale Funktion zum Laden und Anzeigen der Daten ===
+  // === 3. Daten Laden & Anzeigen ===
   async function fetchAndDisplaySwans(locationID = 'Gesamt', fullMesszeit = currentView.messzeit) {
     if (!fullMesszeit) {
-      swanContainer.innerHTML = 'Bitte wählen Sie zuerst eine Zeit aus.';
+      swanContainer.innerHTML = '';
       return;
     }
 
     let apiUrl = `unload.php?messzeit=${encodeURIComponent(fullMesszeit)}`;
-
     if (locationID !== 'Gesamt') {
       apiUrl += `&location=${encodeURIComponent(locationID)}`;
     }
@@ -117,7 +138,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (data.error) throw new Error(data.error);
 
       let totalCounter = 0;
-      
       if (locationID === 'Gesamt') {
           totalCounter = data.reduce((sum, entry) => sum + (parseInt(entry.counter, 10) || 0), 0);
       } else {
@@ -126,33 +146,24 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const numberOfSwans = Math.ceil(totalCounter / SWAN_VALUE);
-      
       renderSwans(numberOfSwans, locationID);
 
     } catch (error) {
-      console.error('Fehler beim Laden der Counter-Daten:', error);
-      swanContainer.innerHTML = '';
-      const errorP = document.createElement('p');
-      errorP.style.cssText = "color:red; text-align:center; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); z-index:2;";
-      document.querySelector('.stage').appendChild(errorP);
-      
+      console.error('Fehler:', error);
+      // Fehleranzeige (optional, hier vereinfacht)
     } finally {
-        setTimeout(() => {
-          document.body.style.pointerEvents = 'auto';
-        }, 500); 
+        setTimeout(() => { document.body.style.pointerEvents = 'auto'; }, 500); 
     }
   }
 
-  // Funktion zur Animation der Schwäne
+  // Animation der Schwäne (Zielpositionen setzen)
   function animateSwans() {
     const activeSwans = swanContainer.querySelectorAll('.swan');
     
     activeSwans.forEach(swan => {
-        // Zufällige Position (innerhalb 10% bis 80% des Viewports)
         const newLeft = 10 + Math.random() * 80;
         const newTop = 10 + Math.random() * 70;
         
-        // Zufällige Grösse/Opazität, um Tiefe zu simulieren
         const newScale = 0.7 + Math.random() * 0.4;
         const newOpacity = 0.6 + Math.random() * 0.4;
 
@@ -164,9 +175,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
 
-  // === 4. Schwäne auf der Seite erstellen und bewegen ===
+  // === 4. Rendering (Erstellen & Bewegen) ===
   function renderSwans(count, locationID) {
-    // Animation stoppen, wenn eine neue Ansicht geladen wird
+    // Alten Loop stoppen
     if (swanAnimationInterval) {
         clearInterval(swanAnimationInterval);
         swanAnimationInterval = null;
@@ -174,17 +185,12 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const existingSwans = swanContainer.querySelectorAll('.swan');
     const existingCount = existingSwans.length;
-    
-    const errorP = document.querySelector('.stage p[style*="color:red"]');
-    if (errorP) errorP.remove();
-
 
     if (locationID === 'Gesamt') {
-        // --- GESAMT ANSICHT (SCHWIMMEN) ---
+        // --- GESAMT ANSICHT ---
         
-        // 1. Sanftes Entfernen alter Schwäne
+        // 1. Aufräumen (Schwimmen weg)
         existingSwans.forEach((swan, index) => {
-             // Setze eine kurze Transition für das Wegschwimmen
              swan.style.transition = 'all 1.5s ease-in-out';
              setTimeout(() => {
                 swan.style.opacity = '0';
@@ -197,98 +203,87 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const cleanupDuration = existingCount > 0 ? 1500 : 0; 
         
-        // 2. Erstellen neuer Schwäne und Start der Animation
+        // 2. Neu erstellen & Animation starten
         setTimeout(() => {
-             swanContainer.innerHTML = ''; // Container leeren
+             swanContainer.innerHTML = ''; 
              
-             // Füge neue Schwäne hinzu
              for (let i = 0; i < count; i++) {
                 const swan = document.createElement('img');
                 swan.src = 'images/swan.png';
                 swan.alt = 'Ein Schwan';
                 swan.className = 'swan';
                 
-                // Setze Startposition und initialen Stil
+                // Initiale Position setzen
                 swan.style.position = 'absolute'; 
                 swan.style.left = `${10 + Math.random() * 80}%`;
                 swan.style.top = `${10 + Math.random() * 70}%`;
                 swan.style.transform = `scale(${0.7 + Math.random() * 0.4})`;
                 swan.style.opacity = `${0.6 + Math.random() * 0.4}`;
-                
-                // KEINE JS-Transition setzen, damit die lange CSS-Transition (z.B. 24s linear) gilt!
+                // Lange Transition für das Schwimmen
+                swan.style.transition = 'all 24s linear'; 
                 
                 swanContainer.appendChild(swan);
             }
             updateSwanCountText(count, locationID);
             
-            // 3. Kontinuierliche Animation starten
-            // NEU: Sofortiger Start der ersten Bewegung
-            animateSwans(); 
-            // Setze alle 18 Sekunden ein neues Ziel
+            // FIX: Sofort starten!
+            // Kleiner Timeout zwingt Browser zum Rendern der Startposition
+            setTimeout(() => {
+                animateSwans(); 
+            }, 50);
+
+            // Loop starten
             swanAnimationInterval = setInterval(animateSwans, 18000); 
 
         }, cleanupDuration); 
 
     } else {
-        // --- DETAIL ANSICHT (BEWEGUNG ZUM STAMP) ---
-        
+        // --- DETAIL ANSICHT ---
         const targetElement = document.querySelector(`.stamp[data-location-id="${locationID}"] img`);
         const rect = targetElement ? targetElement.getBoundingClientRect() : null;
         
-        const PADDING = 140;    
-        const RANDOM_RADIUS = 4;
-        
-        if (!rect) {
-            console.warn(`Ziel-Element für Location-ID "${locationID}" nicht gefunden.`);
-            return;
-        }
+        if (!rect) return;
 
         const stampCenterX = rect.left + rect.width / 2;
         const stampCenterY = rect.top + rect.height / 2;
+        const PADDING = 140;    
+        const RANDOM_RADIUS = 4;
 
-        // Schwäne hinzufügen/entfernen (sanft)
+        // Schwäne anpassen (+/-)
         if (count > existingCount) {
             for (let i = existingCount; i < count; i++) {
                 const swan = document.createElement('img');
                 swan.src = 'images/swan.png';
-                swan.alt = 'Ein Schwan';
                 swan.className = 'swan';
-
-                // Setze die Transition FÜR DETAILANSICHT (4s)
-                swan.style.transition = 'all 4s ease-in-out'; // NEU: 4s
+                swan.style.transition = 'all 4s ease-in-out';
+                swan.style.position = 'fixed'; // Wichtig für Detailansicht
+                
+                // Zufälliger Startpunkt für neue
                 swan.style.left = `${10 + Math.random() * 80}%`;
                 swan.style.top = `${10 + Math.random() * 70}%`;
-                swan.style.transform = `scale(${0.7 + Math.random() * 0.4})`;
-                swan.style.opacity = `${0.6 + Math.random() * 0.4}`;
+                
                 swanContainer.appendChild(swan);
             }
         } else if (count < existingCount) {
             for (let i = existingCount - 1; i >= count; i--) {
                 setTimeout(() => {
                     if (existingSwans[i]) { 
-                         // Setze kurze Transition für das Wegschwimmen
                         existingSwans[i].style.transition = 'all 1.5s ease-in-out';
                         existingSwans[i].style.opacity = '0';
-                        existingSwans[i].style.transform += ' scale(0)'; 
-                        existingSwans[i].style.left = `${Math.random() * 100}vw`; 
-                        existingSwans[i].style.top = `${Math.random() * 100}vh`; 
                         setTimeout(() => existingSwans[i].remove(), 1500); 
                     }
                 }, (existingCount - 1 - i) * 50); 
             }
         }
 
-        // Alle finalen Schwäne zum Stamp bewegen
+        // Bewegung zum Stamp
         const finalSwans = swanContainer.querySelectorAll('.swan');
         setTimeout(() => {
             finalSwans.forEach(swan => {
-                // Setze die Transitionszeit für die Detailansicht auf 5s
-                swan.style.transition = 'all 5s ease-in-out'; // NEU: 5s
+                swan.style.transition = 'all 5s ease-in-out';
                 
-                // Zufällige Positionierung um den Stamp
                 const angle = Math.random() * 2 * Math.PI; 
                 const distance = PADDING + Math.random() * RANDOM_RADIUS; 
-                
                 const targetX = stampCenterX + distance * Math.cos(angle);
                 const targetY = stampCenterY + distance * Math.sin(angle);
 
@@ -303,7 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
   
-  // === 5. Hilfsfunktionen und Event-Handler ===
+  // === 5. Event-Handler ===
 
   function updateSwanCountText(count, locationID) {
     const existingHint = document.querySelector('.hint:not(.swan-hint)');
@@ -319,18 +314,15 @@ document.addEventListener('DOMContentLoaded', () => {
             heroSection.appendChild(countElement);
         }
     }
-    
     const locationText = (locationID === 'Gesamt') ? 'alle Orte' : locationID;
-    countElement.textContent = `Zeige ${count} Schwan${count === 1 ? '' : 'e'} für ${locationText}.`;
+    countElement.textContent = `Zeige ${count} Schwän${count === 1 ? '' : 'e'} für ${locationText}.`;
   }
   
   function updateView(locationID, messzeit) {
     currentView.location = locationID;
     currentView.messzeit = messzeit || currentView.messzeit;
     
-    // Aktive Klasse am Stamp setzen
     stampElements.forEach(stamp => stamp.classList.remove('is-active'));
-    
     if (locationID !== 'Gesamt') {
         const activeStamp = document.querySelector(`.stamp[data-location-id="${locationID}"]`);
         if (activeStamp) activeStamp.classList.add('is-active');
@@ -339,7 +331,7 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchAndDisplaySwans(currentView.location, currentView.messzeit);
   }
   
-  // Dropdown-Toggle-Logik
+  // Dropdown Toggle
   const toggle = timeDropdown.querySelector('.dropdown__toggle');
   toggle.addEventListener('click', () => {
     timeDropdown.classList.toggle('open');
@@ -350,13 +342,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // "Auswählen"-Button (Gesamtansicht mit neu gewählter Zeit)
+  // Datum geändert -> Zeit-Liste updaten
+  dateInput.addEventListener('change', (e) => {
+      const newDate = e.target.value;
+      renderTimeOptions(newDate);
+      
+      // UX: Erstes Element auswählen, damit man nicht "Zeit wählen" sieht
+      const firstButton = timeMenu.querySelector('button');
+      if (firstButton) {
+          timeLabel.textContent = firstButton.textContent;
+          timeLabel.dataset.fullMesszeit = firstButton.dataset.fullMesszeit;
+          currentView.messzeit = firstButton.dataset.fullMesszeit;
+      }
+  });
+
+  // "Auswählen"-Button
   selectButton.addEventListener('click', () => {
       const fullMesszeit = timeLabel.dataset.fullMesszeit || currentView.messzeit;
       updateView('Gesamt', fullMesszeit);
   });
   
-  // Stamp-Klick-Handler (Detailansicht)
+  // Stamp Klicks
   stampElements.forEach(stamp => {
     stamp.addEventListener('click', () => {
       const locationID = stamp.dataset.locationId;
@@ -364,7 +370,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Initialisierung
+  // Start
   async function init() {
     await populateTimeDropdown();
     updateView('Gesamt');
